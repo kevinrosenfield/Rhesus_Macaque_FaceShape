@@ -1,0 +1,81 @@
+---
+title: "Robustness Checks - Rosenfield et al. 2018"
+author: "Kevin A. Rosenfield"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### Read in data
+
+
+#### Data (in .csv format) is read into a dataframe, look-times are converted from frames (29/second) to seconds, and descriptive statistics for looking behavior are displayed.
+
+
+```{r tidy=TRUE}
+
+Rhesus.Trials <- as.data.frame(read.csv("Experimental_Trial_Data.csv"))
+
+Rhesus.Trials$Look_time <- Rhesus.Trials$Look_time / 29
+
+Rhesus.Trials$Masc_time <- Rhesus.Trials$Masc_time / 29
+
+Rhesus.Trials$Fem_time <- Rhesus.Trials$Fem_time / 29
+
+```
+
+```{r subset}
+High_diff <- subset(Rhesus.Trials, MD_cat2 > 0)
+Low_diff <- subset(Rhesus.Trials, MD_cat2 < 1)
+```
+
+
+#### Summaries for the two resulting datasets:
+
+
+```{r summary high}
+
+summary(High_diff[,c(5,24,30,31,32)])
+
+```
+
+
+```{r summary low}
+
+summary(Low_diff[,c(5,24,30,31,32)])
+
+```
+
+
+#### Now, Wilcoxon signed-rank tests (paired, non-parametric) are repeated, once for the low masculinity differences group, once for the high masculinity differences group:
+
+
+```{r prediction2.2a - high differences}
+
+Prediction2.2a <- wilcox.test(High_diff$Masc_time, High_diff$Fem_time, paired = TRUE);
+
+Prediction2.2a
+
+Zstat2.2a<-qnorm(Prediction2.2a$p.value/2)
+Effect_Size2.2a <- abs(Zstat2.2a)/sqrt(20);
+
+Effect_Size2.2a
+
+```
+
+
+```{r prediction2.2b - low differences}
+
+Prediction2.2b <- wilcox.test(Low_diff$Masc_time, Low_diff$Fem_time, paired = TRUE);
+
+Prediction2.2b
+
+Zstat2.2b<-qnorm(Prediction2.2b$p.value/2)
+Effect_Size2.2b <- abs(Zstat2.2b)/sqrt(20);
+
+Effect_Size2.2b
+
+```

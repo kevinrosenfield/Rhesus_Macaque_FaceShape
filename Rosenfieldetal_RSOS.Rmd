@@ -1,0 +1,378 @@
+---
+title: "Main Analyses - Rosenfield et al. 2018"
+author: "Kevin A. Rosenfield"
+date: 25 August 2018
+output:
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### Install and load ggplot2
+
+```{r ggplot2}
+library(ggplot2)
+```
+
+
+## Read in trial data
+
+
+* Data (in .csv format) is read into a dataframe, look-times are converted from frames (29/second) to seconds, and descriptive statistics for looking behavior are displayed.
+
+
+```{r read_in}
+Rhesus.Trials <- as.data.frame(read.csv("Experimental_Trial_Data.csv"))
+
+Rhesus.Trials$Look_time <- Rhesus.Trials$Look_time / 29
+
+Rhesus.Trials$Masc_time <- Rhesus.Trials$Masc_time / 29
+
+Rhesus.Trials$Fem_time <- Rhesus.Trials$Fem_time / 29
+
+summary(Rhesus.Trials[,c(5,24,30,31,32)])
+```
+
+
+
+### Did subjects look significantly longer at one stimulus type than the other?
+
+* Boxplots depicting look-times for masculine and feminine stimuli
+
+```{r boxplots1}
+
+Rhesus_Trials2 <- Rhesus.Trials[,c(31,32)]
+
+library(reshape) 
+Rhesus_Trials2 <- melt(Rhesus_Trials2)
+
+Rhesus_Trials2$Stim <- Rhesus_Trials2[,1]
+Rhesus_Trials2$Time <- Rhesus_Trials2[,2]
+Rhesus_Trials2 <- Rhesus_Trials2[,c(3,4)]
+
+ggplot(Rhesus_Trials2, aes(x=Stim, y=Time, fill=Stim)) + ylab("Look-time (seconds)") + xlab("Image type")+ geom_boxplot() + coord_cartesian(ylim=c(0,11.2)) + scale_y_continuous(breaks=c(2, 4, 6, 8, 10)) + geom_jitter(shape=16, position=position_jitter(.2)) + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank()) + theme(legend.position = "none") + theme(axis.text=element_text(size=12), axis.title=element_text(size=14,face="bold")) + geom_text(aes(1.5, 10.5, label="NS"), size=5)
+
+```
+  
+
+* The following analysis includes the entire dataset (107 trials). Wilcoxon signed-rank test (paired, non-parametric):
+
+
+```{r prediction1.1}
+
+Prediction1.1 <- wilcox.test(Rhesus.Trials$Masc_time, Rhesus.Trials$Fem_time, paired = TRUE)
+
+Prediction1.1
+
+```
+
+
+* We find no significant difference in masculine and feminine stimulus look-times.
+
+
+### Did more subjects look longer at one stimulus type than the other?
+
+
+* The following analysis includes the entire dataset (107 trials). Binomial test: is 64/105 different from chance?; 2 ties were automatically excluded:
+
+
+```{r prediction 1.2}
+
+Prediction1.2 <- binom.test(64, 105, p = 0.5,
+           alternative = c("two.sided"),
+           conf.level = 0.95);
+
+Prediction1.2
+
+```
+
+* Our subjects looked longer at masculine stimuli than feminine stimuli in a significantly higher proportion of trials than would be predicted by chance.
+
+
+### Was the proportion of time subjects spent looking at masculine images associated with the relative difference in masculinity between the two stimuli?
+
+* Scatterplot depicting the relationship between masculinity difference scores and masculinity look-time percentages. Shaded area is th 95% confidence interval of the line.
+
+```{r prediction 2.1a plot}
+
+ggplot(Rhesus.Trials, aes(x=Masc_perc, y=Masc_diff, fill=Masc_perc)) + ylab("Masculinity difference score") + xlab("Masculine image look-time\n(as proportion of total look time)") + geom_smooth(method = 'lm') + geom_point(data=NULL, cex=1.5) + theme(panel.border = element_blank(), axis.line = element_line(colour = "black")) + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank()) + theme(legend.position="none") + xlim(0,100) + theme(axis.text=element_text(size=12), axis.title=element_text(size=14,face="bold"))
+
+```
+
+1. The following analysis includes the entire dataset (107 trials). Linear model: predictor variable: Masculinity difference; dependent variable: masculine stilmulus look percentage:
+
+
+```{r prediction 2.1a}
+
+Prediction2.1a <- lm(Masc_perc ~ Masc_diff, data = Rhesus.Trials); 
+
+summary(Prediction2.1a)
+
+```
+
+* The within-pair Masculinity difference explains a significant proportion of the variability in the masculine stilmulus look percentage.
+
+2. Now we repeat the model, adding raw masculinity score as an additional predictor variable:
+
+```{r prediction 2.1b}
+
+Prediction2.1b <- lm(Masc_perc ~ Masc_diff + Masc_score, data = Rhesus.Trials); 
+
+summary(Prediction2.1b)
+
+```
+
+* The within-pair Masculinity difference explains a significant proportion of the variability in the masculine stilmulus look percentage when controlling for the raw score of the masculinie image.
+
+* The masculine image's score, however, does not explain a significant proportion of the variability in the masculine stilmulus look percentage when relative scores are controlled.
+
+
+### Did subjects look significantly longer at one stimulus type than the other in  a subset of trials with high relative masculinity differences?
+
+
+1. First, the dataset is subsetted into two data frames, based on a binary variable indicating whether the masculinity difference is high (n=54) or low (n=53).
+
+* Boxplots depicting look-times for masculine and feminine stimuli in the high and low masculinity differences groups (requires changing data from horizontally to vertically oriented)
+
+```{r boxplots2}
+
+Rhesus_Trials2 <- Rhesus.Trials[,c(21, 31,32)]
+
+Rhesus_Trials2_high <- subset(Rhesus_Trials2, MD_cat == 1)
+Rhesus_Trials2_low <- subset(Rhesus_Trials2, MD_cat == 0)
+Rhesus_Trials2_high <- Rhesus_Trials2_high[,c(2,3)]
+Rhesus_Trials2_low <- Rhesus_Trials2_low[,c(2,3)] 
+
+Rhesus_Trials2_high <- melt(Rhesus_Trials2_high)
+Rhesus_Trials2_low <- melt(Rhesus_Trials2_low)
+
+Rhesus_Trials2_high$Stim <- Rhesus_Trials2_high[,1]
+Rhesus_Trials2_high$Time <- Rhesus_Trials2_high[,2]
+Rhesus_Trials2_high <- Rhesus_Trials2_high[,c(3,4)]
+
+Rhesus_Trials2_low$Stim <- Rhesus_Trials2_low[,1]
+Rhesus_Trials2_low$Time <- Rhesus_Trials2_low[,2]
+Rhesus_Trials2_low <- Rhesus_Trials2_low[,c(3,4)]
+
+
+ggplot(Rhesus_Trials2_high, aes(x=Stim, y=Time, fill=Stim)) + ylab("Look-time (seconds)") + xlab("Image type")+ geom_boxplot() + coord_cartesian(ylim=c(0,11.2)) + scale_y_continuous(breaks=c(2, 4, 6, 8, 10)) + geom_jitter(shape=16, position=position_jitter(.2)) + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank()) + theme(legend.position = "none") + theme(axis.text=element_text(size=12), axis.title=element_text(size=14,face="bold")) + geom_text(aes(1.5, 10.5, label="*"), size=10)
+
+ggplot(Rhesus_Trials2_low, aes(x=Stim, y=Time, fill=Stim)) + ylab("Look-time (seconds)") + xlab("Image type") + geom_boxplot() + coord_cartesian(ylim=c(0,11.2)) + scale_y_continuous(breaks=c(2, 4, 6, 8, 10)) + geom_jitter(shape=16, position=position_jitter(.2)) + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank()) + theme(legend.position = "none") + theme(axis.text=element_text(size=12), axis.title=element_text(size=14,face="bold")) + geom_text(aes(1.5, 10.5, label="NS"), size=5)
+
+```
+
+* Subsetting of data for analyses
+
+```{r subset1}
+High_diff <- subset(Rhesus.Trials, MD_cat == 1)
+Low_diff <- subset(Rhesus.Trials, MD_cat == 0)
+```
+
+
+2. Summaries for the two resulting datasets:
+
++ High differences
+
+```{r summary high differences}
+
+summary(High_diff[,c(5,24,30,31,32)])
+
+```
+
++ Low differences
+
+```{r summary low differences}
+
+summary(Low_diff[,c(5,24,30,31,32)])
+
+```
+
+
+3. Now, Wilcoxon signed-rank tests (paired, non-parametric) are repeated, once for the low masculinity differences group, once for the high masculinity differences group:
+
++ High differences
+
+```{r prediction2.2a - high differences}
+
+Prediction2.2a <- wilcox.test(High_diff$Masc_time, High_diff$Fem_time, paired = TRUE)
+
+```
+
+* We find that subjects looked significantly longer at masculine than feminine stimuli in the subset of trials with high masculinity differences.
+
++ Low differences
+
+```{r prediction2.2b - low differences}
+
+Prediction2.2b <- wilcox.test(Low_diff$Masc_time, Low_diff$Fem_time, paired = TRUE)
+
+```
+
+* We find no significant difference in masculine and feminine stimulus look-times in the subset of trials with low masculinity differences.
+
+
+### Check for confounding variables
+
+* Does group co-membership between subjects and stimulus males influence looking behavior?
+
+1.
+
+```{r subset2}
+
+No_Groupmate <- subset(Rhesus.Trials, Groupmates=="None", select = "Masc_perc")
+
+Fem_Groupmate <- subset(Rhesus.Trials, Groupmates=="Fem", select = "Masc_perc")
+
+Masc_Groupmate <- subset(Rhesus.Trials, Groupmates=="Masc", select = "Masc_perc")
+
+Both_Groupmate <- subset(Rhesus.Trials, Groupmates=="Both", select = "Masc_perc")
+
+Groupmates <- merge(No_Groupmate, Fem_Groupmate)
+```
+
+
+2. Analyses (Wilcoxon signed-rank) testing whether subjects' masculine stimulus look-time percentages differed when the subject and 1) the feminine stimulus male was a groupmate, 2) the masculine stimulus male was a groupmate, or 3) both stimulus males were groupmates; each is compared to trials in which neither was a groupmate:
+
+
+```{r groupmate}
+
+confound_masc_groupmate <- wilcox.test(Masc_Groupmate$Masc_perc, No_Groupmate$Masc_perc, paired = FALSE); confound_masc_groupmate
+
+counfound_fem_groupmate <- wilcox.test(Fem_Groupmate$Masc_perc, No_Groupmate$Masc_perc, paired = FALSE); counfound_fem_groupmate
+
+confound_both_groupmxate <- wilcox.test(Both_Groupmate$Masc_perc, No_Groupmate$Masc_perc, paired = FALSE); confound_both_groupmxate
+
+```
+
+
+* We find no evidence that co-goup membership affected subjects'  looking behavior.
+
+## Read in facial masculinity, color, and luminance data
+
+
+```{r facial data}
+
+Rhesus.Masculinity <- as.data.frame(read.csv("Facial_Masculinity_Data.csv"))
+
+Rhesus.Masculinity$Color <- as.numeric(as.character(Rhesus.Masculinity$Color))
+
+Rhesus.Masculinity$Luminance <- as.numeric(as.character(Rhesus.Masculinity$Luminance))
+
+```
+
+* Subset data into three datasets: One including all stumli, one including masculine stimuli only, and one including feminine stimuli only
+
+```{r subset3}
+
+Stimuli <- subset(Rhesus.Masculinity, M2_F1_Not0 > 0, select = c("Age","Color","Luminance","Masculinity_score"))
+
+Masc_Stimuli <- subset(Rhesus.Masculinity, M2_F1_Not0 == 2, select = c("Age","Color","Luminance","Masculinity_score"))
+
+Fem_Stimuli <- subset(Rhesus.Masculinity, M2_F1_Not0 == 1, select = c("Age","Color","Luminance","Masculinity_score"))
+
+```
+
+1.  Are facial masculinity scores related to age?
+
+```{r age}
+
+Age_corr <- cor.test(Stimuli$Masculinity_score, Stimuli$Age, method = "spearman");
+
+Age_corr
+
+Age_means <- wilcox.test(Masc_Stimuli$Age, Fem_Stimuli$Age, paired = FALSE);
+
+Age_means
+
+```
+
+* Among stimuli, age is not signicantly correlated with facial masculinity, and age does not differ significantly between masculine and feminine stimuli.
+
+2. Are facial masculinity scores related to facial color?
+
+```{r color}
+
+Color_corr <- cor.test(Stimuli$Masculinity_score, Stimuli$Color, method = "spearman");
+
+Color_corr
+
+Color_means <- wilcox.test(Masc_Stimuli$Color, Fem_Stimuli$Color, paired = FALSE);
+
+Color_means
+
+```
+
+* Among stimuli, facial color is not signicantly correlated with facial masculinity, and facial color does not differ significantly between masculine and feminine stimuli.
+
+3. Are facial masculinity scores related to facial luminance?
+
+```{r luminance}
+
+
+Luminance_corr <- cor.test(Stimuli$Masculinity_score, Stimuli$Luminance, method = "spearman");
+
+Luminance_corr
+
+Luminance_means <- wilcox.test(Masc_Stimuli$Luminance, Fem_Stimuli$Luminance, paired = FALSE); 
+
+Luminance_means
+
+```
+
+*Among stimuli, facial luminance is not signicantly correlated with facial masculinity, and facial luminance does not differ significantly between masculine and feminine stimuli.
+
+### Analyses of possible confounding variables reveals no evidence that facial masculinity is confounded by the age, facial color, or facial luminance of stimulus males.
+
+
+
+
+#### Because we seperated the odd number of trials into high (N=54) and low (N=53) masculinity differences groups arbitrarily, to test robustness of our results, we repeated these analyses with trials seperated into alternative high (N=53) and low (N=54) groups (one trial moved the high to the low group).
+
+```{r subset extra}
+High_diff_extra <- subset(Rhesus.Trials, MD_cat2 > 0)
+Low_diff_extra <- subset(Rhesus.Trials, MD_cat2 < 1)
+```
+
+
+#### Summaries for the two resulting datasets:
+
+
+```{r summary high extra}
+
+summary(High_diff_extra[,c(5,24,30,31,32)])
+
+```
+
+
+```{r summary low extra}
+
+summary(Low_diff_extra[,c(5,24,30,31,32)])
+
+```
+
+
+#### Now, Wilcoxon signed-rank tests (paired, non-parametric) are repeated, once for the low masculinity differences group, once for the high masculinity differences group:
+
+
+```{r prediction2.2a - high differences extra}
+
+Prediction2.2a_extra <- wilcox.test(High_diff$Masc_time, High_diff$Fem_time, paired = TRUE);
+
+Prediction2.2a_extra
+
+```
+
+* We still find that subjects looked significantly longer at masculine than feminine stimuli in the subset of trials with high masculinity differences.
+
+```{r prediction2.2b - low differences extra}
+
+Prediction2.2b_extra <- wilcox.test(Low_diff$Masc_time, Low_diff$Fem_time, paired = TRUE);
+
+Prediction2.2b_extra
+
+```
+
+* We still find no significant difference in masculine and feminine stimulus look-times in the subset of trials with low masculinity differences.
+
